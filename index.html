@@ -37,7 +37,7 @@
     let svg = d3.select("svg").attr("viewBox", "0 0 " + width + " " + height)
 
     // Load external data
-    Promise.all([d3.json("https://cors-anywhere.herokuapp.com/https://raw.githubusercontent.com/Chi-Loong/CSC3007/main/assignments/links-sample.json"), d3.json("https://cors-anywhere.herokuapp.com/https://raw.githubusercontent.com/Chi-Loong/CSC3007/main/assignments/cases-sample.json")]).then(data => {
+    Promise.all([d3.json("https://raw.githubusercontent.com/Chi-Loong/CSC3007/main/assignments/links-sample.json"), d3.json("https://raw.githubusercontent.com/Chi-Loong/CSC3007/main/assignments/cases-sample.json")]).then(data => {
 
     // Data preprocessing
     data[0].forEach(e => {
