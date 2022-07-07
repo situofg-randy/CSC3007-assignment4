@@ -5,20 +5,36 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   
     <style>
-
+        body {
+            text-align: center;
+        }
+        
     </style>
     </head>
     <body>
+        <h2>1. Select the radio buttons to change data</h2>
+        <label class="radio">
+            <input name="nodeValues" type="radio" value="1" id="radioButton1" checked="checked">
+            Gender
+        </label>
+        <label class="radio">
+            <input name="nodeValues" type="radio" value="2" id="radioButton2">
+            Age(>40)
+        </label>
+        <h2>2. Mouse over nodes for labels</h2>
+        <h2>3. Click and drag the nodes!</h2>  
+        
     <svg width="800" height="600"></svg>
+    <div id="tool_tip"></div>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.24.0/d3-legend.js"></script>
 
     <script>
 
-    
-
-    let svg = d3.select("svg")
-    let width = svg.attr("width")
-    let height = svg.attr("height")
+    let width = 800
+    let height = 600
+    let svg = d3.select("svg").attr("viewBox", "0 0 " + width + " " + height)
 
     // Load external data
     Promise.all([d3.json("https://cors-anywhere.herokuapp.com/https://raw.githubusercontent.com/Chi-Loong/CSC3007/main/assignments/links-sample.json"), d3.json("https://cors-anywhere.herokuapp.com/https://raw.githubusercontent.com/Chi-Loong/CSC3007/main/assignments/cases-sample.json")]).then(data => {
@@ -41,16 +57,39 @@
     .force("charge", d3.forceManyBody().strength(-30))
     .force("center", d3.forceCenter(width / 2, height / 2))
 
+    svg.append("g")
+      .attr("class", "legendOrdinal")
+      .attr("transform", "translate(20,20)");
+
+    let colorScale = d3.scaleOrdinal()
+    .domain(["Male","Female"])
+    .range(["blue", "pink"])
+
+    let legend = d3.legendColor().scale(colorScale);
+    
+    svg.select(".legendOrdinal").call(legend);
+
+    svg.append("svg:defs").append("svg:marker")
+    .attr("id", "arrow")
+    .attr("viewBox", "0 -5 10 10")
+    .attr('refX', -20)//so that it comes towards the center.
+    .attr("markerWidth", 5)
+    .attr("markerHeight", 5)
+    .attr("orient", "auto")
+  .append("svg:path")
+    .attr("d", "M0,-5L10,0L0,5");
+
     var link = svg
         .append("g")
         .attr("class", "links")
         .selectAll("line")
         .data(links)
         .enter()
-        .append("line")
-        .attr("stroke-width", function(d) {
-        return 3;
-        }).style("stroke", "black");
+        .append( "path" )//append path
+    .attr( "class", function(d) { return "link arrow" } )
+    .style( "stroke", "#000" )
+    .attr('marker-start', function(d) { return "url(#arrow)" })
+    .style( "stroke-width", 2 );
 
     var node = svg
         .append("g")
@@ -58,6 +97,13 @@
         .data(nodes)
         .enter()
         .append("g")
+        .call(d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended))
+        .on("mouseover", function(d) { return label.style("visibility", "visible")})
+        .on("mouseout", function(d) { return label.style("visibility", "hidden")})
+        
 
     var circles = node
         .append("circle")
@@ -69,16 +115,17 @@
                 return "pink"
             }
         })
-
-    var label = node.append("text").text(function(d) { return d.gender })
-
         
-    var drag_handler = d3.drag()
-    .on("start", dragstarted)
-    .on("drag", dragged)
-    .on("end", dragended);
+    var tooltip = d3.select("#tool_tip")
+    .append("div")
+    .style("position", "absolute")
+    .style("visibility", "hidden")
+    .text("null");
 
-    drag_handler(node);
+    var label = node.append("text").text(function(d) { return d.gender }).style("visibility", "hidden")
+
+    
+
 
     simulation
       .nodes(nodes)
@@ -88,11 +135,7 @@
       .links(links);
 
     function ticked() {
-        link
-        .attr("x1", function(d) { return d.source.x; })
-        .attr("y1", function(d) { return d.source.y; })
-        .attr("x2", function(d) { return d.target.x; })
-        .attr("y2", function(d) { return d.target.y; });
+        link.attr( "d", function(d) { return "M" + d.source.x + "," + d.source.y + ", " + d.target.x + "," + d.target.y })
 
         node
             .attr("transform", function(d) {
@@ -100,22 +143,66 @@
         })
     }
 
-    function dragstarted(d) {
-        if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+    function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
         d.fx = d.x;
         d.fy = d.y;
     }
 
-    function dragged(d) {
-        d.fx = d3.event.x;
-        d.fy = d3.event.y;
+    function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
     }
 
-    function dragended(d) {
-        if (!d3.event.active) simulation.alphaTarget(0);
+    function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
         d.fx = null;
         d.fy = null;
     }
+
+    $("#radioButton1").click(function() {
+        colorScale = d3.scaleOrdinal()
+        .domain(['Male','Female'])
+        .range(["blue", "pink"])
+
+        circles = node
+        .append("circle")
+        .attr("r", 5).attr("fill", function(d) {
+            if (d.gender === "male") {
+            return "blue"
+           } else {
+            return "pink"
+           }
+        })
+
+        legend = d3.legendColor().scale(colorScale);
+        svg.select(".legendOrdinal").call(legend);
+
+        node.selectAll("text").remove();
+        label = node.append("text").text(function(d) { return d.gender }).style("visibility", "hidden")
+    })
+
+    $("#radioButton2").click(function() {
+        colorScale = d3.scaleOrdinal()
+        .domain(['Age <40','Age >40'])
+        .range(["green", "yellow"])
+
+        circles = node
+        .append("circle")
+        .attr("r", 5).attr("fill", function(d) {
+           if (d.age < 40) {
+            return "green"
+           } else {
+            return "yellow"
+           }
+        })
+
+        legend = d3.legendColor().scale(colorScale);
+        svg.select(".legendOrdinal").call(legend);
+
+        node.selectAll("text").remove();
+        label = node.append("text").text(function(d) { return d.age }).style("visibility", "hidden")
+    })
     });
 </script>
 
